@@ -18,6 +18,7 @@ import numpy as np
 from PIL import Image
 
 def shaderFromFile(shaderType, shaderFile):
+    '''create shader from file'''
     shaderSrc = ''
     with open(shaderFile) as sf:
         shaderSrc = sf.read()
@@ -42,7 +43,7 @@ class MyGLWidget(QGLWidget):
         
     def loadImage(self, imageFile):
         # load the image using Pillow
-        self.im = Image.open(self.textFileName)
+        self.im = Image.open(imageFile)
         
         # set window size to the images size
         self.setGeometry(40, 40, self.im.size[0], self.im.size[1])
