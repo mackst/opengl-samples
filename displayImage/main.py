@@ -39,6 +39,7 @@ class MyGLWidget(QGLWidget):
         self.vertices = None
         self.indices = None
         
+        # chang this to load your image file
         self.loadImage('Lenna.png')
         
     def loadImage(self, imageFile):
