@@ -133,11 +133,11 @@ if __name__ == '__main__':
     mywidget.show()
     
     # print information on screen
-    print("\tUsing PySide " + PySide.__version__)
-    print("\tVendor: " + glGetString(GL_VENDOR))
-    print("\tRenderer: " + glGetString(GL_RENDERER))
-    print("\tVersion: " + glGetString(GL_VERSION))
-    print("\tGLSL: " + glGetString(GL_SHADING_LANGUAGE_VERSION))
+    sys.stdout.write("\tUsing PySide " + PySide.__version__)
+    sys.stdout.write("\n\tVendor: " + glGetString(GL_VENDOR))
+    sys.stdout.write("\n\tRenderer: " + glGetString(GL_RENDERER))
+    sys.stdout.write("\n\tVersion: " + glGetString(GL_VERSION))
+    sys.stdout.write("\n\tGLSL: " + glGetString(GL_SHADING_LANGUAGE_VERSION))
     
     sys.exit(app.exec_())
 
