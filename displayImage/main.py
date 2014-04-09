@@ -39,6 +39,7 @@ class MyGLWidget(QGLWidget):
         self.vertices = None
         self.indices = None
         
+        # chang this to load your image file
         self.loadImage('Lenna.png')
         
     def loadImage(self, imageFile):
@@ -66,7 +67,7 @@ class MyGLWidget(QGLWidget):
         glUniform1i(self.tmUL, 0)
         glUseProgram(0)
         
-        # two triangle to make a quat
+        # two triangle to make a quad
         self.vertices = np.array((0.0, 0.0, 
                                   1.0, 0.0, 
                                   1.0, 1.0, 
