@@ -29,12 +29,16 @@ class MyGLWidget(QGLWidget):
     def __init__(self, gformat, parent=None):
         super(MyGLWidget, self).__init__(gformat, parent)
         
+        # filter shaders
+        self.filters = ('shader.frag', 'gaussian.frag', )
+        self.activeFilter = 'shader.frag'
+        
         # buffer object ids
         self.vaoID = None
         self.vboVerticesID = None
         self.vboIndicesID = None
         self.textureID = None
-        self.sprogram = None
+        self.sprogram = {}
         
         self.vertices = None
         self.indices = None
@@ -49,23 +53,25 @@ class MyGLWidget(QGLWidget):
         # set window size to the images size
         self.setGeometry(40, 40, self.im.size[0], self.im.size[1])
         # set window title
-        self.setWindowTitle('Dispaly - ' + imageFile)
+        self.setWindowTitle('Dispaly with filter[%s]' % self.activeFilter)
     
     def initializeGL(self):
         glClearColor(0, 0, 0, 0)
         
-        # create shader from file
-        vshader = shaderFromFile(GL_VERTEX_SHADER, 'shader.vert')
-        fshader = shaderFromFile(GL_FRAGMENT_SHADER, 'shader.frag')
-        # compile shaders
-        self.sprogram = shaders.compileProgram(vshader, fshader)
+        # load shaders
+        for shader in self.filters:
+            # create shader from file
+            vshader = shaderFromFile(GL_VERTEX_SHADER, 'shader.vert')
+            fshader = shaderFromFile(GL_FRAGMENT_SHADER, shader)
+            # compile shaders
+            self.sprogram[shader] = shaders.compileProgram(vshader, fshader)
         
-        # get attribute and set uniform for shaders
-        glUseProgram(self.sprogram)
-        self.vertexAL = glGetAttribLocation(self.sprogram, 'pos')
-        self.tmUL = glGetUniformLocation(self.sprogram, 'textureMap')
-        glUniform1i(self.tmUL, 0)
-        glUseProgram(0)
+            # get attribute and set uniform for shaders
+            glUseProgram(self.sprogram[shader])
+            self.vertexAL = glGetAttribLocation(self.sprogram[shader], 'pos')
+            self.tmUL = glGetUniformLocation(self.sprogram[shader], 'textureMap')
+            glUniform1i(self.tmUL, 0)
+            glUseProgram(0)
         
         # two triangle to make a quad
         self.vertices = np.array((0.0, 0.0, 
@@ -118,10 +124,21 @@ class MyGLWidget(QGLWidget):
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         
         # active shader
-        glUseProgram(self.sprogram)
+        glUseProgram(self.sprogram[self.activeFilter])
         # draw triangles
         glDrawElements(GL_TRIANGLES, self.indices.size, GL_UNSIGNED_SHORT, None)
         glUseProgram(0)
+        
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Space:
+            index = self.filters.index(self.activeFilter)
+            if index == len(self.filters) - 1:
+                index = 0
+            else:
+                index += 1
+            self.activeFilter = self.filters[index]
+            self.setWindowTitle('Dispaly with filter[%s]' % self.activeFilter)
+        self.updateGL()
 
 
 if __name__ == '__main__':
