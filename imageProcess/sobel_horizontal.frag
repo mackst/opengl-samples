@@ -7,10 +7,10 @@ uniform sampler2D textureMap;
 out vec4 outColor;
 
 // filter
-const float filterWeights[9] = {1., 2., 1.,
-                                2., 4., 2.,
-                                1., 2., 1.};
-const float factor = 16.0;
+const float filterWeights[9] = {-1.,  0.,  1.,
+                                -2.,  0.,  2.,
+                                -1.,  0.,  1.};
+const float factor = 1.0;
 
 void main()
 {

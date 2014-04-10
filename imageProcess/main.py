@@ -30,7 +30,8 @@ class MyGLWidget(QGLWidget):
         super(MyGLWidget, self).__init__(gformat, parent)
         
         # filter shaders
-        self.filters = ('shader.frag', 'gaussian.frag', 'emboss.frag')
+        self.filters = ('shader.frag', 'gaussian.frag', 'emboss.frag', 
+                        'sobel_vertical.frag', 'sobel_horizontal.frag')
         self.activeFilter = 'shader.frag'
         
         # buffer object ids
