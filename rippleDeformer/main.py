@@ -103,19 +103,51 @@ class MyGLWidget(QGLWidget):
         self.vertices = None
         self.indices = None
         
-        # grid width and height
-        self.gwidth = 20
-        self.gheight = 20
-        
         # camera
         self.camera = FreeCamera()
         self.state = False
         
+        # timer
+        self.elapsTimer = QElapsedTimer()
+        self.elapsTimer.start()
+        self.startTimer(60)
+        
         # set window size to the images size
         self.setGeometry(40, 40, 640, 480)
         # set window title
-        self.setWindowTitle('Dispaly - ')
+        self.setWindowTitle('ripple effect')
         self.setMouseTracking(True)
+        
+    def makePlane(self, xsize, zsize, xdivs, zdivs):
+        vertices = []
+        indices = []
+        
+        xs2 = xsize / 2.0
+        zs2 = zsize / 2.0
+        ifactor = float(zsize) / zdivs
+        jfactor = float(xsize) / xdivs
+        for i in range(zdivs + 1):
+            z = ifactor * i - zs2
+            for j in range(xdivs + 1):
+                x = jfactor * j - xs2
+                pos = (x, 0, z)
+                vertices.append(pos)
+        
+        rowStart = 0
+        nextRowStart = 0
+        for i in range(zdivs):
+            rowStart = i * (xdivs + 1)
+            nextRowStart = (i + 1) * (xdivs + 1)
+            for j in range(xdivs):
+                indices.append(rowStart + j)
+                indices.append(nextRowStart + j)
+                indices.append(nextRowStart + j + 1)
+                indices.append(rowStart + j)
+                indices.append(nextRowStart + j + 1)
+                indices.append(rowStart + j + 1)
+                
+        return (np.array(vertices, dtype=np.float32), 
+                np.array(indices, dtype=np.ushort))
     
     def initializeGL(self):
         glClearColor(0, 0, 0, 0)
@@ -130,29 +162,12 @@ class MyGLWidget(QGLWidget):
         glUseProgram(self.sprogram)
         self.vertexAL = glGetAttribLocation(self.sprogram, 'pos')
         self.mvpUL = glGetUniformLocation(self.sprogram, 'MVP')
-        self.tmUL = glGetUniformLocation(self.sprogram, 'time')
-        glUniform1f(self.tmUL, 0.)
+        self.timeUL = glGetUniformLocation(self.sprogram, 'time')
+        glUniform1f(self.timeUL, 0.)
         glUseProgram(0)
         
         # create a grid
-        gw2 = self.gwidth / 2
-        gh2 = self.gheight / 2
-        vertices = []
-        for i in xrange(-gw2, gw2 + 1):
-            vertices.append((i, 0, -gh2))
-            vertices.append((i, 0, gh2))
-            vertices.append((-gw2, 0, i))
-            vertices.append((gw2, 0, i))
-        self.vertices = np.array(vertices, dtype=np.float32)
-        
-        # grid indices
-        indices = []
-        for i in xrange(0, self.gwidth * self.gheight, 4):
-            indices.append(i)
-            indices.append(i + 1)
-            indices.append(i + 2)
-            indices.append(i + 3)
-        self.indices = np.array(indices, dtype=np.ushort)
+        self.vertices, self.indices = self.makePlane(8., 8., 160, 160)
         
         # set up vertex array
         self.vaoID = glGenVertexArrays(1)
@@ -171,8 +186,11 @@ class MyGLWidget(QGLWidget):
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, self.indices.nbytes, self.indices, GL_STATIC_DRAW)
         
         # set camera position
-        self.camera.position = QVector3D(0, 2, 45)
+        self.camera.position = QVector3D(0, 0, 5)
         self.camera.rotatetion = QVector3D(30, 30, 0)
+        
+        # display with wireframe
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
         
         print("Initialization successfull")
         
@@ -180,18 +198,20 @@ class MyGLWidget(QGLWidget):
         glViewport(0, 0, w, h)
         self.camera.perspective(45., float(w) / h)
         
-    def paintGL(self, *args, **kwargs):
+    def paintGL(self):
         # clear the buffers
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         
-        mvp = self.camera.projection * self.camera.getWorldToViewMatrix() #* modelMat
+        time = self.elapsTimer.elapsed() / 1000.
+        mvp = self.camera.projection * self.camera.getWorldToViewMatrix()
         mvp = np.array(mvp.copyDataTo(), dtype=np.float32)
         
         # active shader
         glUseProgram(self.sprogram)
         glUniformMatrix4fv(self.mvpUL, 1, GL_TRUE, mvp)
+        glUniform1f(self.timeUL, time)
         # draw triangles
-        glDrawElements(GL_LINES, self.indices.size, GL_UNSIGNED_SHORT, None)
+        glDrawElements(GL_TRIANGLES, self.indices.size, GL_UNSIGNED_SHORT, None)
         glUseProgram(0)
         
     def mousePressEvent(self, event):
@@ -222,6 +242,9 @@ class MyGLWidget(QGLWidget):
             self.camera.liftUp()
         elif event.key() == Qt.Key_Z:
             self.camera.liftDown()
+        self.updateGL()
+        
+    def timerEvent(self, event):
         self.updateGL()
 
 
