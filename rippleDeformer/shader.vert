@@ -15,6 +15,6 @@ const float PI = 3.14159;
 void main()
 {
     float r = length(pos);
-    float y = amplitude * sin(-PI * r * frequency+time);
+    float y = amplitude * sin(-PI * r * frequency+time) / r;
     gl_Position = MVP * vec4(pos.x, y, pos.z, 1.);
 }

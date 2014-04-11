@@ -187,7 +187,7 @@ class MyGLWidget(QGLWidget):
         
         # set camera position
         self.camera.position = QVector3D(0, 0, 5)
-        self.camera.rotatetion = QVector3D(30, 30, 0)
+        self.camera.rotatetion = QVector3D(30, 35, 0)
         
         # display with wireframe
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
