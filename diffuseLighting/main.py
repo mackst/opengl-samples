@@ -89,11 +89,11 @@ class FreeCamera(object):
         
     def strafeLeft(self):
         '''move left'''
-        self.position -= self.__rightAxis
+        self.position += self.__rightAxis
         
     def strafeRight(self):
         '''move right'''
-        self.position += self.__rightAxis
+        self.position -= self.__rightAxis
 
 
 class MyGLWidget(QGLWidget):
@@ -258,13 +258,25 @@ class MyGLWidget(QGLWidget):
         self.updateGL()
 
 
+class MyWindow(QMainWindow):
+    
+    def __init__(self, parent=None):
+        super(MyWindow, self).__init__(parent)
+        
+        glformat = QGLFormat()
+        glformat.setVersion(4, 3)
+        glformat.setProfile(QGLFormat.CoreProfile)
+        self.glwidget = MyGLWidget(glformat)
+        
+        self.setCentralWidget(self.glwidget)
+        
+    def keyPressEvent(self, event):
+        self.glwidget.keyPressEvent(event)
+
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    gformat = QGLFormat()
-    gformat.setVersion(4, 3)
-    gformat.setProfile(QGLFormat.CoreProfile)
-    mywidget = MyGLWidget(gformat)
-    mywidget.show()
+    mywin = MyWindow()
+    mywin.show()
     
     # print information on screen
     sys.stdout.write("\tUsing PySide " + PySide.__version__)
