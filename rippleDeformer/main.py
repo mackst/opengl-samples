@@ -56,6 +56,7 @@ class FreeCamera(object):
         return mat
     
     def updateMouse(self, pos, update=False):
+        '''update mouse position and calculate the look direction'''
         if update:
             mouseDelta = pos - self.__oldMP
             
@@ -71,22 +72,28 @@ class FreeCamera(object):
         self.__oldMP = pos
         
     def forward(self):
+        '''move forward'''
         self.position += self.__viewDirection
     
     def backward(self):
+        '''move backward'''
         self.position -= self.__viewDirection
         
     def liftUp(self):
+        '''move up'''
         self.position += self.__up
         
     def liftDown(self):
+        '''move down'''
         self.position -= self.__up
         
     def strafeLeft(self):
-        self.position -= self.__rightAxis
+        '''move left'''
+        self.position += self.__rightAxis
         
     def strafeRight(self):
-        self.position += self.__rightAxis
+        '''move right'''
+        self.position -= self.__rightAxis
 
 
 class MyGLWidget(QGLWidget):
@@ -119,9 +126,11 @@ class MyGLWidget(QGLWidget):
         self.setMouseTracking(True)
         
     def makePlane(self, xsize, zsize, xdivs, zdivs):
+        '''make a plane with triangles'''
         vertices = []
         indices = []
         
+        # calculate the vertices position
         xs2 = xsize / 2.0
         zs2 = zsize / 2.0
         ifactor = float(zsize) / zdivs
@@ -133,6 +142,7 @@ class MyGLWidget(QGLWidget):
                 pos = (x, 0, z)
                 vertices.append(pos)
         
+        # vertex indices
         rowStart = 0
         nextRowStart = 0
         for i in range(zdivs):
