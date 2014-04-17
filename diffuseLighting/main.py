@@ -23,6 +23,7 @@ def shaderFromFile(shaderType, shaderFile):
         shaderSrc = sf.read()
     return shaders.compileShader(shaderSrc, shaderType)
 
+
 class FreeCamera(object):
     '''a free camera'''
     def __init__(self):
@@ -89,12 +90,126 @@ class FreeCamera(object):
         
     def strafeLeft(self):
         '''move left'''
-        self.position += self.__rightAxis
+        self.position -= self.__rightAxis
         
     def strafeRight(self):
         '''move right'''
-        self.position -= self.__rightAxis
+        self.position += self.__rightAxis
 
+class Cube(object):
+    '''render a cube with triangles'''
+    def __init__(self, width=1):
+        self._width = 1
+        width2 = self._width / 2.0
+        
+        self.vao = None
+        self.vertexVBO = None
+        self.normalVBO = None
+        self.indexVBO = None
+        
+        # vertex data
+        self.vertex = np.array((
+                                # front 
+                                (-width2, -width2, width2), 
+                                (width2, -width2, width2), 
+                                (width2, width2, width2), 
+                                (-width2, width2, width2),
+                                # right
+                                (width2, -width2, width2),
+                                (width2, -width2, -width2),
+                                (width2, width2, -width2),
+                                (width2, width2, width2),
+                                # back
+                                (-width2, -width2, -width2),
+                                (-width2, width2, -width2),
+                                (width2, width2, -width2),
+                                (width2, -width2, -width2),
+                                # left
+                                (-width2, -width2, width2),
+                                (-width2, width2, width2),
+                                (-width2, width2, -width2),
+                                (-width2, -width2, -width2),
+                                # bottom
+                                (-width2, width2, width2),
+                                (width2, width2, width2),
+                                (width2, width2, -width2),
+                                (-width2, width2, -width2),
+                                ), dtype=np.float32)
+        # normal data
+        self.normal = np.array((
+                                # front
+                                (0, 0, 1),
+                                (0, 0, 1),
+                                (0, 0, 1),
+                                (0, 0, 1),
+                                # right
+                                (1, 0, 0),
+                                (1, 0, 0),
+                                (1, 0, 0),
+                                (1, 0, 0),
+                                # back
+                                (0, 0, -1),
+                                (0, 0, -1),
+                                (0, 0, -1),
+                                (0, 0, -1),
+                                # left
+                                (-1, 0, 0),
+                                (-1, 0, 0),
+                                (-1, 0, 0),
+                                (-1, 0, 0),
+                                # bottom
+                                (0, -1, 0),
+                                (0, -1, 0),
+                                (0, -1, 0),
+                                (0, -1, 0),
+                                # top
+                                (0, 1, 0),
+                                (0, 1, 0),
+                                (0, 1, 0),
+                                (0, 1, 0),
+                                ), dtype=np.float32)
+        self.indices = np.array((0, 1, 2, 
+                                 0, 2, 3, 
+                                 4, 5, 6, 
+                                 4, 6, 7, 
+                                 8, 9, 10, 
+                                 8, 10, 11, 
+                                 12, 13, 14, 
+                                 12, 14, 15, 
+                                 16, 17, 18, 
+                                 16, 18, 19, 
+                                 20, 21, 22, 
+                                 20, 22, 23,), dtype=np.ushort)
+        
+        # crate buffers
+        self.vao = glGenVertexArrays(0)
+        self.vertexVBO, self.indexVBO, self.normalVBO = glGenBuffers(3)
+        
+        glBindVertexArray(self.vao)
+        
+        # send vertex data
+        glBindBuffer(GL_ARRAY_BUFFER, self.vertexVBO)
+        glBufferData(GL_ARRAY_BUFFER, self.vertex.nbytes, self.vertex, GL_STATIC_DRAW)
+        
+        glEnableVertexAttribArray(0)
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, None)
+        
+        # send normal data
+        glBindBuffer(GL_ARRAY_BUFFER, self.normalVBO)
+        glBufferData(GL_ARRAY_BUFFER, self.normal.nbytes, self.normal, GL_STATIC_DRAW)
+        
+        glEnableVertexAttribArray(1)
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, None)
+        
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.indexVBO)
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, self.indices.nbytes, self.indices, GL_STATIC_DRAW)
+        
+        glBindVertexArray(0)
+    
+    def render(self):
+        '''draw the cube'''
+        glBindVertexArray(self.vao)
+        glDrawElements(GL_TRIANGLES, self.indices.size, GL_UNSIGNED_SHORT, None)
 
 class MyGLWidget(QGLWidget):
     
@@ -263,6 +378,10 @@ class MyWindow(QMainWindow):
     def __init__(self, parent=None):
         super(MyWindow, self).__init__(parent)
         
+        self.setWindowTitle('diffuse lighting')
+        self.setGeometry(40, 40, 1280, 720)
+        
+        # setup opengl version and profile
         glformat = QGLFormat()
         glformat.setVersion(4, 3)
         glformat.setProfile(QGLFormat.CoreProfile)
