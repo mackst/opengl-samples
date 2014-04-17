@@ -321,7 +321,7 @@ class MyGLWidget(QGLWidget):
         # enable depth
         glEnable(GL_DEPTH_TEST)
         
-        print("Initialization successfull")
+        sys.stdout.write("Initialization successfull")
         
     def resizeGL(self, w, h):
         glViewport(0, 0, w, h)
@@ -331,11 +331,12 @@ class MyGLWidget(QGLWidget):
         # clear the buffers
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         
+        modelMat = QMatrix4x4()
         viewMat = self.camera.getWorldToViewMatrix()
         normalMat = np.array((viewMat.column(0).toVector3D().toTuple(), 
                               viewMat.column(1).toVector3D().toTuple(), 
                               viewMat.column(2).toVector3D().toTuple()), dtype=np.float32)
-        mvp = self.camera.projection * viewMat
+        mvp = self.camera.projection * viewMat * modelMat
         mv = np.array(viewMat.copyDataTo(), dtype=np.float32)
         mvp = np.array(mvp.copyDataTo(), dtype=np.float32)
         
@@ -352,9 +353,9 @@ class MyGLWidget(QGLWidget):
         self.plane.render()
         
         # move the cube
-        modle = QMatrix4x4()
-        modle.translate(0, .5, 0)
-        mvp = np.array((self.camera.projection * viewMat * modle).copyDataTo(), dtype=np.float32)
+        modelMat.setToIdentity()
+        modelMat.translate(0, .5, 0)
+        mvp = np.array((self.camera.projection * viewMat * modelMat).copyDataTo(), dtype=np.float32)
         glUniformMatrix4fv(self.mvpUL, 1, GL_TRUE, mvp)
         self.cube.render()
         
@@ -390,6 +391,80 @@ class MyGLWidget(QGLWidget):
             self.camera.liftDown()
         self.updateGL()
 
+class LightControll(QWidget):
+    '''controll light from GUI'''
+    def __init__(self, glwidget, parent=None):
+        super(LightControll, self).__init__(parent)
+        
+        self.glwidget = glwidget
+        
+        lightLabel = QLabel('Light Position')
+        self.lpx = QDoubleSpinBox()
+        self.lpx.setValue(5.0)
+        self.lpx.setRange(-100., 100.)
+        self.lpy = QDoubleSpinBox()
+        self.lpy.setValue(5.0)
+        self.lpy.setRange(-100., 100.)
+        self.lpz = QDoubleSpinBox()
+        self.lpz.setValue(5.0)
+        self.lpz.setRange(-100., 100.)
+        lplayout = QHBoxLayout()
+        lplayout.addWidget(self.lpx)
+        lplayout.addWidget(self.lpy)
+        lplayout.addWidget(self.lpz)
+        
+        reflLabel = QLabel('Reflectivity')
+        self.refx = QDoubleSpinBox()
+        self.refx.setValue(1.0)
+        self.refx.setSingleStep(0.01)
+        self.refy = QDoubleSpinBox()
+        self.refy.setValue(1.0)
+        self.refy.setSingleStep(0.01)
+        self.refz = QDoubleSpinBox()
+        self.refz.setValue(1.0)
+        self.refz.setSingleStep(0.01)
+        reflayout = QHBoxLayout()
+        reflayout.addWidget(self.refx)
+        reflayout.addWidget(self.refy)
+        reflayout.addWidget(self.refz)
+        
+        intLabel = QLabel('Intensity')
+        self.intx = QDoubleSpinBox()
+        self.intx.setValue(1.0)
+        self.inty = QDoubleSpinBox()
+        self.inty.setValue(1.0)
+        self.intz = QDoubleSpinBox()
+        self.intz.setValue(1.0)
+        intlayout = QHBoxLayout()
+        intlayout.addWidget(self.intx)
+        intlayout.addWidget(self.inty)
+        intlayout.addWidget(self.intz)
+        
+        mainLayout = QVBoxLayout()
+        mainLayout.addWidget(lightLabel)
+        mainLayout.addLayout(lplayout)
+        mainLayout.addWidget(reflLabel)
+        mainLayout.addLayout(reflayout)
+        mainLayout.addWidget(intLabel)
+        mainLayout.addLayout(intlayout)
+        
+        self.setLayout(mainLayout)
+        
+        self.lpx.valueChanged.connect(self.update)
+        self.lpy.valueChanged.connect(self.update)
+        self.lpz.valueChanged.connect(self.update)
+        self.refx.valueChanged.connect(self.update)
+        self.refy.valueChanged.connect(self.update)
+        self.refz.valueChanged.connect(self.update)
+        self.intx.valueChanged.connect(self.update)
+        self.inty.valueChanged.connect(self.update)
+        self.intz.valueChanged.connect(self.update)
+        
+    def update(self, value):
+        self.glwidget.lightPos = (self.lpx.value(), self.lpy.value(), self.lpz.value(), 1.)
+        self.glwidget.Kd = (self.refx.value(), self.refy.value(), self.refz.value())
+        self.glwidget.Ld = (self.intx.value(), self.inty.value(), self.intz.value())
+        self.glwidget.updateGL()
 
 class MyWindow(QMainWindow):
     
@@ -406,6 +481,12 @@ class MyWindow(QMainWindow):
         self.glwidget = MyGLWidget(glformat)
         
         self.setCentralWidget(self.glwidget)
+        
+        cw = LightControll(self.glwidget)
+        dw = QDockWidget(self)
+        dw.setWidget(cw)
+        dw.visibilityChanged.connect(cw.show)
+        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, dw)
         
     def keyPressEvent(self, event):
         self.glwidget.keyPressEvent(event)
