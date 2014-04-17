@@ -138,13 +138,14 @@ class RenderObject(object):
         '''draw the object'''
         glBindVertexArray(self.vao)
         glDrawElements(GL_TRIANGLES, self.indices.size, GL_UNSIGNED_SHORT, None)
+        glBindVertexArray(0)
 
 class Cube(RenderObject):
     '''render a cube with triangles'''
     def __init__(self, width=1):
         super(Cube, self).__init__()
         
-        self._width = 1
+        self._width = width
         width2 = self._width / 2.0
         
         # vertex data
@@ -312,7 +313,7 @@ class MyGLWidget(QGLWidget):
         
         # create a plane and a cube
         self.plane = Plane()
-        self.cube = Cube()
+        self.cube = Cube(.5)
         
         # set camera position
         self.camera.position = QVector3D(0, 0, 5)
@@ -352,9 +353,23 @@ class MyGLWidget(QGLWidget):
         # render objects
         self.plane.render()
         
-        # move the cube
+        # render the cube
         modelMat.setToIdentity()
-        modelMat.translate(0, .5, 0)
+        modelMat.translate(0, .25, 0)
+        mvp = np.array((self.camera.projection * viewMat * modelMat).copyDataTo(), dtype=np.float32)
+        glUniformMatrix4fv(self.mvpUL, 1, GL_TRUE, mvp)
+        self.cube.render()
+        
+        modelMat.setToIdentity()
+        modelMat.rotate(45, 0, 1, 0)
+        modelMat.translate(-1, .25, -1)
+        mvp = np.array((self.camera.projection * viewMat * modelMat).copyDataTo(), dtype=np.float32)
+        glUniformMatrix4fv(self.mvpUL, 1, GL_TRUE, mvp)
+        self.cube.render()
+        
+        modelMat.setToIdentity()
+        modelMat.rotate(-30, 0, 1, 0)
+        modelMat.translate(1, .25, -1)
         mvp = np.array((self.camera.projection * viewMat * modelMat).copyDataTo(), dtype=np.float32)
         glUniformMatrix4fv(self.mvpUL, 1, GL_TRUE, mvp)
         self.cube.render()
@@ -486,7 +501,7 @@ class MyWindow(QMainWindow):
         dw = QDockWidget(self)
         dw.setWidget(cw)
         dw.visibilityChanged.connect(cw.show)
-        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, dw)
+        self.addDockWidget(Qt.DockWidgetArea.TopDockWidgetArea, dw)
         
     def keyPressEvent(self, event):
         self.glwidget.keyPressEvent(event)
