@@ -110,7 +110,7 @@ class RenderObject(object):
         
     def setupBuffers(self, vertexIndex=0, normalIndex=1):
         # crate buffers
-        self.vao = glGenVertexArrays(0)
+        self.vao = glGenVertexArrays(1)
         self.vertexVBO, self.indexVBO, self.normalVBO = glGenBuffers(3)
         
         glBindVertexArray(self.vao)
@@ -142,6 +142,8 @@ class RenderObject(object):
 class Cube(RenderObject):
     '''render a cube with triangles'''
     def __init__(self, width=1):
+        super(Cube, self).__init__()
+        
         self._width = 1
         width2 = self._width / 2.0
         
@@ -224,6 +226,8 @@ class Cube(RenderObject):
 class Plane(RenderObject):
     '''render a plane with triangles'''
     def __init__(self, xsize=4., zsize=4., xdivs=10, zdivs=10):
+        super(Plane, self).__init__()
+        
         vertices = []
         normals = []
         indices = []
@@ -265,6 +269,7 @@ class MyGLWidget(QGLWidget):
     
     def __init__(self, gformat, parent=None):
         super(MyGLWidget, self).__init__(gformat, parent)
+        self.setMouseTracking(True)
         
         # buffer object ids
         self.vaoID = None
@@ -305,31 +310,16 @@ class MyGLWidget(QGLWidget):
         glUniform3f(self.ldUL, self.Ld[0], self.Ld[1], self.Ld[2])
         glUseProgram(0)
         
-        # create a grid
-        self.vertices, self.indices = self.makePlane(8., 8., 160, 160)
-        
-        # set up vertex array
-        self.vaoID = glGenVertexArrays(1)
-        self.vboVerticesID = glGenBuffers(1)
-        self.vboIndicesID = glGenBuffers(1)
-        
-        glBindVertexArray(self.vaoID)
-        glBindBuffer(GL_ARRAY_BUFFER, self.vboVerticesID)
-        # copy vertices data from memery to gpu memery
-        glBufferData(GL_ARRAY_BUFFER, self.vertices.nbytes, self.vertices, GL_STATIC_DRAW)
-        # tell opengl how to procces the vertices data
-        glEnableVertexAttribArray(0)
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, None)
-        # send the indice data too
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.vboIndicesID)
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, self.indices.nbytes, self.indices, GL_STATIC_DRAW)
+        # create a plane and a cube
+        self.plane = Plane()
+        self.cube = Cube()
         
         # set camera position
         self.camera.position = QVector3D(0, 0, 5)
         self.camera.rotatetion = QVector3D(30, 35, 0)
         
-        # display with wireframe
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
+        # enable depth
+        glEnable(GL_DEPTH_TEST)
         
         print("Initialization successfull")
         
@@ -341,12 +331,12 @@ class MyGLWidget(QGLWidget):
         # clear the buffers
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         
-        mv = self.camera.getWorldToViewMatrix()
-        normalMat = np.array((mv.column(0).toVector3D().toTuple()
-                              , mv.column(1).toVector3D().toTuple(), 
-                              mv.column(2).toVector3D().toTuple()), dtype=np.float32)
-        mvp = self.camera.projection * mv
-        mv = np.array(mv.copyDataTo(), dtype=np.float32)
+        viewMat = self.camera.getWorldToViewMatrix()
+        normalMat = np.array((viewMat.column(0).toVector3D().toTuple(), 
+                              viewMat.column(1).toVector3D().toTuple(), 
+                              viewMat.column(2).toVector3D().toTuple()), dtype=np.float32)
+        mvp = self.camera.projection * viewMat
+        mv = np.array(viewMat.copyDataTo(), dtype=np.float32)
         mvp = np.array(mvp.copyDataTo(), dtype=np.float32)
         
         # active shader
@@ -357,19 +347,28 @@ class MyGLWidget(QGLWidget):
         glUniformMatrix4fv(self.mvpUL, 1, GL_TRUE, mvp)
         glUniformMatrix4fv(self.mvUL, 1, GL_TRUE, mv)
         glUniformMatrix3fv(self.nmUL, 1, GL_TRUE, normalMat)
-        # draw triangles
-        glDrawElements(GL_TRIANGLES, self.indices.size, GL_UNSIGNED_SHORT, None)
+        
+        # render objects
+        self.plane.render()
+        
+        # move the cube
+        modle = QMatrix4x4()
+        modle.translate(0, .5, 0)
+        mvp = np.array((self.camera.projection * viewMat * modle).copyDataTo(), dtype=np.float32)
+        glUniformMatrix4fv(self.mvpUL, 1, GL_TRUE, mvp)
+        self.cube.render()
+        
         glUseProgram(0)
         
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
             self.state = True
-            self.camera.updateMouse(event.pos(), self.state)
+            #self.camera.updateMouse(event.pos(), self.state)
     
     def mouseReleaseEvent(self, event):
         if event.button() == Qt.LeftButton:
             self.state = False
-            self.camera.updateMouse(event.pos(), self.state)
+            #self.camera.updateMouse(event.pos(), self.state)
         
     def mouseMoveEvent(self, event):
         pos = event.pos()
