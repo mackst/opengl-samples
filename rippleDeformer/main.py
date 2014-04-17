@@ -89,11 +89,19 @@ class FreeCamera(object):
         
     def strafeLeft(self):
         '''move left'''
+<<<<<<< HEAD
         self.position -= self.__rightAxis
         
     def strafeRight(self):
         '''move right'''
         self.position += self.__rightAxis
+=======
+        self.position += self.__rightAxis
+        
+    def strafeRight(self):
+        '''move right'''
+        self.position -= self.__rightAxis
+>>>>>>> 4717898b7b2205e2ef53abf295a2db704b8470db
 
 
 class MyGLWidget(QGLWidget):
