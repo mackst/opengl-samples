@@ -229,16 +229,10 @@ class MyGLWidget(QGLWidget):
         self.camera = FreeCamera()
         self.state = False
         
-        # timer
-        self.elapsTimer = QElapsedTimer()
-        self.elapsTimer.start()
-        self.startTimer(60)
+        self.lightPos = (5., 5., 5., 1.)
+        self.Kd = (1., 1., 1.)
+        self.Ld = (1., 1., 1.)
         
-        # set window size to the images size
-        self.setGeometry(40, 40, 640, 480)
-        # set window title
-        self.setWindowTitle('ripple effect')
-        self.setMouseTracking(True)
         
     def makePlane(self, xsize, zsize, xdivs, zdivs):
         '''make a plane with triangles'''
@@ -285,10 +279,15 @@ class MyGLWidget(QGLWidget):
         
         # get attribute and set uniform for shaders
         glUseProgram(self.sprogram)
-        self.vertexAL = glGetAttribLocation(self.sprogram, 'pos')
         self.mvpUL = glGetUniformLocation(self.sprogram, 'MVP')
-        self.timeUL = glGetUniformLocation(self.sprogram, 'time')
-        glUniform1f(self.timeUL, 0.)
+        self.mvUL = glGetUniformLocation(self.sprogram, 'MV')
+        self.nmUL = glGetUniformLocation(self.sprogram, 'NormalMatrix')
+        self.lposUL = glGetUniformLocation(self.sprogram, 'lightPos')
+        self.kdUL = glGetUniformLocation(self.sprogram, 'Kd')
+        self.ldUL = glGetUniformLocation(self.sprogram, 'Ld')
+        glUniform4f(self.lposUL, self.lightPos[0], self.lightPos[1], self.lightPos[2], self.lightPos[3])
+        glUniform3f(self.kdUL, self.Kd[0], self.Kd[1], self.Kd[2])
+        glUniform3f(self.ldUL, self.Ld[0], self.Ld[1], self.Ld[2])
         glUseProgram(0)
         
         # create a grid
@@ -304,8 +303,8 @@ class MyGLWidget(QGLWidget):
         # copy vertices data from memery to gpu memery
         glBufferData(GL_ARRAY_BUFFER, self.vertices.nbytes, self.vertices, GL_STATIC_DRAW)
         # tell opengl how to procces the vertices data
-        glEnableVertexAttribArray(self.vertexAL)
-        glVertexAttribPointer(self.vertexAL, 3, GL_FLOAT, GL_FALSE, 0, None)
+        glEnableVertexAttribArray(0)
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, None)
         # send the indice data too
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.vboIndicesID)
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, self.indices.nbytes, self.indices, GL_STATIC_DRAW)
@@ -327,14 +326,22 @@ class MyGLWidget(QGLWidget):
         # clear the buffers
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         
-        time = self.elapsTimer.elapsed() / 1000.
-        mvp = self.camera.projection * self.camera.getWorldToViewMatrix()
+        mv = self.camera.getWorldToViewMatrix()
+        normalMat = np.array((mv.column(0).toVector3D().toTuple()
+                              , mv.column(1).toVector3D().toTuple(), 
+                              mv.column(2).toVector3D().toTuple()), dtype=np.float32)
+        mvp = self.camera.projection * mv
+        mv = np.array(mv.copyDataTo(), dtype=np.float32)
         mvp = np.array(mvp.copyDataTo(), dtype=np.float32)
         
         # active shader
         glUseProgram(self.sprogram)
+        glUniform4f(self.lposUL, self.lightPos[0], self.lightPos[1], self.lightPos[2], self.lightPos[3])
+        glUniform3f(self.kdUL, self.Kd[0], self.Kd[1], self.Kd[2])
+        glUniform3f(self.ldUL, self.Ld[0], self.Ld[1], self.Ld[2])
         glUniformMatrix4fv(self.mvpUL, 1, GL_TRUE, mvp)
-        glUniform1f(self.timeUL, time)
+        glUniformMatrix4fv(self.mvUL, 1, GL_TRUE, mv)
+        glUniformMatrix3fv(self.nmUL, 1, GL_TRUE, normalMat)
         # draw triangles
         glDrawElements(GL_TRIANGLES, self.indices.size, GL_UNSIGNED_SHORT, None)
         glUseProgram(0)
@@ -367,9 +374,6 @@ class MyGLWidget(QGLWidget):
             self.camera.liftUp()
         elif event.key() == Qt.Key_Z:
             self.camera.liftDown()
-        self.updateGL()
-        
-    def timerEvent(self, event):
         self.updateGL()
 
 
