@@ -1,20 +1,25 @@
-#version 430
-
-// using http://adrianboeing.blogspot.com/2011/02/ripple-effect-in-webgl.html
-// to make ripple effect
+#version 430 core
 
 layout(location=0) in vec3 pos;
+layout(location=1) in vec3 normal;
 
-uniform mat4 MVP;
-uniform float time;
+uniform vec4 lightPos; // light position
+uniform vec3 Kd; // diffuse reflectivity
+uniform vec3 Ld; // diffuse intensity
 
-const float amplitude = 0.125;
-const float frequency = 4;
-const float PI = 3.14159;
+uniform mat3 NormalMatrix;
+uniform mat4 MVP; // modle view projection matrix
+uniform mat4 MV; // modle view matrix
+
+out vec3 color;
 
 void main()
 {
-    float r = length(pos);
-    float y = amplitude * sin(-PI * r * frequency+time) / r;
-    gl_Position = MVP * vec4(pos.x, y, pos.z, 1.);
+    vec3 norm = normalize(NormalMatrix * normal);
+    vec4 eye = MV * vec4(pos, 1.);
+    vec3 dir = normalize(vec3(lightPos - eye));
+    
+    color = Ld * Kd * max(dot(dir, norm), 0.);
+    
+    gl_Position = MVP * vec4(pos, 1.);
 }
