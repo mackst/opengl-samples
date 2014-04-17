@@ -96,16 +96,54 @@ class FreeCamera(object):
         '''move right'''
         self.position += self.__rightAxis
 
-class Cube(object):
-    '''render a cube with triangles'''
-    def __init__(self, width=1):
-        self._width = 1
-        width2 = self._width / 2.0
-        
+class RenderObject(object):
+    '''a renderable object'''
+    def __init__(self):
         self.vao = None
         self.vertexVBO = None
         self.normalVBO = None
         self.indexVBO = None
+        
+        self.vertex = None
+        self.normal = None
+        self.indices = None
+        
+    def setupBuffers(self, vertexIndex=0, normalIndex=1):
+        # crate buffers
+        self.vao = glGenVertexArrays(0)
+        self.vertexVBO, self.indexVBO, self.normalVBO = glGenBuffers(3)
+        
+        glBindVertexArray(self.vao)
+        
+        # send vertex data
+        glBindBuffer(GL_ARRAY_BUFFER, self.vertexVBO)
+        glBufferData(GL_ARRAY_BUFFER, self.vertex.nbytes, self.vertex, GL_STATIC_DRAW)
+        
+        glEnableVertexAttribArray(vertexIndex)
+        glVertexAttribPointer(vertexIndex, 3, GL_FLOAT, GL_FALSE, 0, None)
+        
+        # send normal data
+        glBindBuffer(GL_ARRAY_BUFFER, self.normalVBO)
+        glBufferData(GL_ARRAY_BUFFER, self.normal.nbytes, self.normal, GL_STATIC_DRAW)
+        
+        glEnableVertexAttribArray(normalIndex)
+        glVertexAttribPointer(normalIndex, 3, GL_FLOAT, GL_FALSE, 0, None)
+        
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.indexVBO)
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, self.indices.nbytes, self.indices, GL_STATIC_DRAW)
+        
+        glBindVertexArray(0)
+        
+    def render(self):
+        '''draw the object'''
+        glBindVertexArray(self.vao)
+        glDrawElements(GL_TRIANGLES, self.indices.size, GL_UNSIGNED_SHORT, None)
+
+class Cube(RenderObject):
+    '''render a cube with triangles'''
+    def __init__(self, width=1):
+        self._width = 1
+        width2 = self._width / 2.0
         
         # vertex data
         self.vertex = np.array((
@@ -181,35 +219,47 @@ class Cube(object):
                                  20, 21, 22, 
                                  20, 22, 23,), dtype=np.ushort)
         
-        # crate buffers
-        self.vao = glGenVertexArrays(0)
-        self.vertexVBO, self.indexVBO, self.normalVBO = glGenBuffers(3)
+        self.setupBuffers()
+
+class Plane(RenderObject):
+    '''render a plane with triangles'''
+    def __init__(self, xsize=4., zsize=4., xdivs=10, zdivs=10):
+        vertices = []
+        normals = []
+        indices = []
         
-        glBindVertexArray(self.vao)
+        # calculate the vertices position
+        xs2 = xsize / 2.0
+        zs2 = zsize / 2.0
+        ifactor = float(zsize) / zdivs
+        jfactor = float(xsize) / xdivs
+        for i in range(zdivs + 1):
+            z = ifactor * i - zs2
+            for j in range(xdivs + 1):
+                x = jfactor * j - xs2
+                pos = (x, 0, z)
+                vertices.append(pos)
+                normals.append((0, 1, 0))
         
-        # send vertex data
-        glBindBuffer(GL_ARRAY_BUFFER, self.vertexVBO)
-        glBufferData(GL_ARRAY_BUFFER, self.vertex.nbytes, self.vertex, GL_STATIC_DRAW)
+        # vertex indices
+        rowStart = 0
+        nextRowStart = 0
+        for i in range(zdivs):
+            rowStart = i * (xdivs + 1)
+            nextRowStart = (i + 1) * (xdivs + 1)
+            for j in range(xdivs):
+                indices.append(rowStart + j)
+                indices.append(nextRowStart + j)
+                indices.append(nextRowStart + j + 1)
+                indices.append(rowStart + j)
+                indices.append(nextRowStart + j + 1)
+                indices.append(rowStart + j + 1)
+                
+        self.vertex = np.array(vertices, dtype=np.float32)
+        self.normal = np.array(normals, dtype=np.float32)
+        self.indices = np.array(indices, dtype=np.ushort)
         
-        glEnableVertexAttribArray(0)
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, None)
-        
-        # send normal data
-        glBindBuffer(GL_ARRAY_BUFFER, self.normalVBO)
-        glBufferData(GL_ARRAY_BUFFER, self.normal.nbytes, self.normal, GL_STATIC_DRAW)
-        
-        glEnableVertexAttribArray(1)
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, None)
-        
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.indexVBO)
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, self.indices.nbytes, self.indices, GL_STATIC_DRAW)
-        
-        glBindVertexArray(0)
-    
-    def render(self):
-        '''draw the cube'''
-        glBindVertexArray(self.vao)
-        glDrawElements(GL_TRIANGLES, self.indices.size, GL_UNSIGNED_SHORT, None)
+        self.setupBuffers()
 
 class MyGLWidget(QGLWidget):
     
@@ -232,41 +282,6 @@ class MyGLWidget(QGLWidget):
         self.lightPos = (5., 5., 5., 1.)
         self.Kd = (1., 1., 1.)
         self.Ld = (1., 1., 1.)
-        
-        
-    def makePlane(self, xsize, zsize, xdivs, zdivs):
-        '''make a plane with triangles'''
-        vertices = []
-        indices = []
-        
-        # calculate the vertices position
-        xs2 = xsize / 2.0
-        zs2 = zsize / 2.0
-        ifactor = float(zsize) / zdivs
-        jfactor = float(xsize) / xdivs
-        for i in range(zdivs + 1):
-            z = ifactor * i - zs2
-            for j in range(xdivs + 1):
-                x = jfactor * j - xs2
-                pos = (x, 0, z)
-                vertices.append(pos)
-        
-        # vertex indices
-        rowStart = 0
-        nextRowStart = 0
-        for i in range(zdivs):
-            rowStart = i * (xdivs + 1)
-            nextRowStart = (i + 1) * (xdivs + 1)
-            for j in range(xdivs):
-                indices.append(rowStart + j)
-                indices.append(nextRowStart + j)
-                indices.append(nextRowStart + j + 1)
-                indices.append(rowStart + j)
-                indices.append(nextRowStart + j + 1)
-                indices.append(rowStart + j + 1)
-                
-        return (np.array(vertices, dtype=np.float32), 
-                np.array(indices, dtype=np.ushort))
     
     def initializeGL(self):
         glClearColor(0, 0, 0, 0)
@@ -277,7 +292,7 @@ class MyGLWidget(QGLWidget):
         # compile shaders
         self.sprogram = shaders.compileProgram(vshader, fshader)
         
-        # get attribute and set uniform for shaders
+        # get and set uniform for shaders
         glUseProgram(self.sprogram)
         self.mvpUL = glGetUniformLocation(self.sprogram, 'MVP')
         self.mvUL = glGetUniformLocation(self.sprogram, 'MV')
