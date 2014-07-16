@@ -1,0 +1,3 @@
+[submodule "OpenGL-Examples/pyglfw"]
+	path = OpenGL-Examples/pyglfw
+	url = https://github.com/rougier/pyglfw.git
