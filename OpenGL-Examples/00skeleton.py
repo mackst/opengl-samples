@@ -64,8 +64,11 @@ class Window(object):
 
 
 if __name__ == '__main__':
+    import os.path
+
     if glfwInit() == GL_FALSE:
         raise Exception('failed to init GLFW')
 
-    win = Window()
+    title = os.path.basename(__file__)
+    win = Window(title=title[:-3])
     win.show()
