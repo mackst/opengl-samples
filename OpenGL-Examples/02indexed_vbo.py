@@ -56,9 +56,7 @@ class Window(object):
                                 1.0, 1.0, 0.0,  1.0, 0.0, 0.0, # vertex 0
                                -1.0, 1.0, 0.0,  0.0, 1.0, 0.0, # vertex 1
                                 1.0, -1.0, 0.0, 0.0, 0.0, 1.0, # vertex 2
-                                1.0, -1.0, 0.0, 0.0, 0.0, 1.0, # vertex 3
-                               -1.0, 1.0, 0.0,  0.0, 1.0, 0.0, # vertex 4
-                               -1.0, -1.0, 0.0, 1.0, 0.0, 0.0, # vertex 5
+                               -1.0, -1.0, 0.0, 1.0, 0.0, 0.0, # vertex 3
                                ], dtype=np.float32)
 
         # fill with data
@@ -70,6 +68,17 @@ class Window(object):
 
         glEnableVertexAttribArray(1)
         glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * 4, ctypes.c_void_p(3 * 4))
+
+        ibo = glGenBuffers(1)
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo)
+
+        indexData = np.array([
+                              0, 1, 2, # first triangle
+                              2, 1, 3, # second triangle
+                              ], dtype=np.uint)
+
+        # fill with data
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexData.nbytes, indexData, GL_STATIC_DRAW)
 
         glBindVertexArray(0)
 
@@ -85,7 +94,7 @@ class Window(object):
         glBindVertexArray(self.__vao)
 
         # draw
-        glDrawArrays(GL_TRIANGLES, 0, 6)
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, None)
 
         glBindVertexArray(0)
         glUseProgram(0)
