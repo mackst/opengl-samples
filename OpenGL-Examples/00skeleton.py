@@ -15,6 +15,7 @@ class Window(object):
         self.width = width
         self.height = height
         self.title = title
+        self.window = None
 
     def initGL(self):
         """opengl initialization"""
@@ -35,17 +36,17 @@ class Window(object):
         """create the window and show it"""
         self.initWindow()
 
-        window = glfwCreateWindow(self.width, self.height, self.title, 0, 0)
-        if window == 0:
+        self.window = glfwCreateWindow(self.width, self.height, self.title, 0, 0)
+        if self.window == 0:
             glfwTerminate()
             raise Exception('failed to open window')
 
-        glfwMakeContextCurrent(window)
+        glfwMakeContextCurrent(self.window)
 
         # initialize opengl
         self.initGL()
 
-        while not glfwWindowShouldClose(window):
+        while not glfwWindowShouldClose(self.window):
             glfwPollEvents()
 
             self.renderGL()
@@ -56,9 +57,12 @@ class Window(object):
                 raise Exception(error)
 
             # finally swap buffers
-            glfwSwapBuffers(window)
+            glfwSwapBuffers(self.window)
 
-        glfwDestroyWindow(window)
+        self.close()
+
+    def close(self):
+        glfwDestroyWindow(self.window)
         glfwTerminate()
 
 
