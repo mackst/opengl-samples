@@ -7,6 +7,7 @@ Most of the samples will using pyopengl and PySide.
 
 You may also need follow dependent packages:
 
+* pyglfw  https://github.com/rougier/pyglfw
 * numpy
 * Pillow
 

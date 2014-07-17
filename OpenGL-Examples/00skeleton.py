@@ -6,7 +6,7 @@
 
 from OpenGL.GL import *
 
-from pyglfw.glfw import *
+from glfw import *
 
 
 class Window(object):
