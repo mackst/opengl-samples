@@ -3,7 +3,9 @@
 # OpenGL example code - Shader and VBO
 # This example shows the setup and usage of shaders and a vbo+vao
 
+import ctypes
 
+import numpy as np
 from OpenGL.GL import *
 from OpenGL.GL import shaders
 
@@ -18,11 +20,13 @@ class Window(object):
         self.title = title
         self.window = None
 
-        self.__vertexShader = './shaders/01shader.vert'
-        self.__fragmentShader = './shaders/01shader.frag'
+        self.__vertexShader = './shaders/01shader_vbo1.vert'
+        self.__fragmentShader = './shaders/01shader_vbo1.frag'
         self.__shaderProgram = None
+        self.__vao = None
 
     def shaderFromFile(self, shaderType, shaderFile):
+        """read shader from file and compile it"""
         shaderSrc = ''
         with open(shaderFile) as sf:
             shaderSrc = sf.read()
@@ -38,9 +42,53 @@ class Window(object):
         if not self.__shaderProgram:
             self.close()
 
+        # generate and bind the vao
+        self.__vao = glGenVertexArrays(1)
+        glBindVertexArray(self.__vao)
+
+        # generate and bind the buffer object
+        vbo = glGenBuffers(1)
+        glBindBuffer(GL_ARRAY_BUFFER, vbo)
+
+        # data for a fullscreen quad
+        vertexData = np.array([
+                               # x   y    z      R    G    B
+                                1.0, 1.0, 0.0,  1.0, 0.0, 0.0, # vertex 0
+                               -1.0, 1.0, 0.0,  0.0, 1.0, 0.0, # vertex 1
+                                1.0, -1.0, 0.0, 0.0, 0.0, 1.0, # vertex 2
+                                1.0, -1.0, 0.0, 0.0, 0.0, 1.0, # vertex 3
+                               -1.0, 1.0, 0.0,  0.0, 1.0, 0.0, # vertex 4
+                               -1.0, -1.0, 0.0, 1.0, 0.0, 0.0, # vertex 5
+                               ], dtype=np.float32)
+
+        # fill with data
+        glBufferData(GL_ARRAY_BUFFER, vertexData.nbytes, vertexData, GL_STATIC_DRAW)
+
+        # set up generic attrib pointers
+        glEnableVertexAttribArray(0)
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * 4, None)
+
+        glEnableVertexAttribArray(1)
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * 4, ctypes.c_void_p(3 * 4))
+
+        glBindVertexArray(0)
+
     def renderGL(self):
         """opengl render method"""
-        pass
+        # clear first
+        glClear(GL_COLOR_BUFFER_BIT)
+
+        # use the shader program
+        glUseProgram(self.__shaderProgram)
+
+        # bind the vao
+        glBindVertexArray(self.__vao)
+
+        # draw
+        glDrawArrays(GL_TRIANGLES, 0, 6)
+
+        glBindVertexArray(0)
+        glUseProgram(0)
 
     def initWindow(self):
         """setup window options. etc, opengl version"""
