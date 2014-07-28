@@ -8,5 +8,5 @@ out vec4 fcolor;
 void main()
 {
     fcolor = vcolor;
-    gl_position = ViewProjection * vposition;
+    gl_Position = ViewProjection * vposition;
 }

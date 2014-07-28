@@ -9,8 +9,8 @@ import numpy as np
 from OpenGL.GL import *
 from OpenGL.GL import shaders
 
-import glm
 from glfw import *
+import glm
 
 
 class Window(object):
@@ -25,7 +25,7 @@ class Window(object):
         self.__fragmentShader = './shaders/%s.frag' % self.title
         self.__shaderProgram = None
         self.__vao = None
-        self._vpLocation = None
+        self.__vpLocation = None
 
     def shaderFromFile(self, shaderType, shaderFile):
         """read shader from file and compile it"""
@@ -43,9 +43,8 @@ class Window(object):
         self.__shaderProgram = shaders.compileProgram(vertexShader, fragmentShader)
         if not self.__shaderProgram:
             self.close()
-            
-        # obtain location of projection uniform
-        self._vpLocation = glGetUniformLocation(self.__shaderProgram, 'ViewProjection')
+
+        self.__vpLocation = glGetUniformLocation(self.__shaderProgram, 'ViewProjection')
 
         # generate and bind the vao
         self.__vao = glGenVertexArrays(1)
@@ -57,42 +56,42 @@ class Window(object):
 
         # data for a fullscreen quad
         vertexData = np.array([
-                               # x    y    z     R    G    B
+                               # x   y    z      U    V
                                # face 0:
-                                1.0, 1.0, 1.0, 1.0, 0.0, 0.0, # vertex 0
-                               -1.0, 1.0, 1.0, 1.0, 0.0, 0.0, # vertex 1
-                                1.0,-1.0, 1.0, 1.0, 0.0, 0.0, # vertex 2
-                               -1.0,-1.0, 1.0, 1.0, 0.0, 0.0, # vertex 3
+                                1.0, 1.0, 1.0,       1.0, 0.0, 0.0, # vertex 0
+                               -1.0, 1.0, 1.0,       1.0, 0.0, 0.0, # vertex 1
+                                1.0,-1.0, 1.0,       1.0, 0.0, 0.0, # vertex 2
+                               -1.0,-1.0, 1.0,       1.0, 0.0, 0.0, # vertex 3
 
                                # face 1:
-                               1.0, 1.0, 1.0, 0.0, 1.0, 0.0, # vertex0
-                               1.0,-1.0, 1.0, 0.0, 1.0, 0.0, # vertex1
-                               1.0, 1.0,-1.0, 0.0, 1.0, 0.0, # vertex2
-                               1.0,-1.0,-1.0, 0.0, 1.0, 0.0, # vertex3
+                                1.0, 1.0, 1.0,       0.0, 1.0, 0.0, # vertex 0
+                                1.0,-1.0, 1.0,       0.0, 1.0, 0.0, # vertex 1
+                                1.0, 1.0,-1.0,       0.0, 1.0, 0.0, # vertex 2
+                                1.0,-1.0,-1.0,       0.0, 1.0, 0.0, # vertex 3
 
                                # face 2:
-                                1.0, 1.0, 1.0, 0.0, 0.0, 1.0, # vertex0
-                                1.0, 1.0,-1.0, 0.0, 0.0, 1.0, # vertex1
-                               -1.0, 1.0, 1.0, 0.0, 0.0, 1.0, # vertex2
-                               -1.0, 1.0,-1.0, 0.0, 0.0, 1.0, # vertex3
+                                1.0, 1.0, 1.0,       0.0, 0.0, 1.0, # vertex 0
+                                1.0, 1.0,-1.0,       0.0, 0.0, 1.0, # vertex 1
+                               -1.0, 1.0, 1.0,       0.0, 0.0, 1.0, # vertex 2
+                               -1.0, 1.0,-1.0,       0.0, 0.0, 1.0, # vertex 3
 
                                # face 3:
-                                1.0, 1.0,-1.0, 1.0, 1.0, 0.0, # vertex0
-                                1.0,-1.0,-1.0, 1.0, 1.0, 0.0, # vertex1
-                               -1.0, 1.0,-1.0, 1.0, 1.0, 0.0, # vertex2
-                               -1.0,-1.0,-1.0, 1.0, 1.0, 0.0, # vertex3
+                                1.0, 1.0,-1.0,       1.0, 1.0, 0.0, # vertex 0
+                                1.0,-1.0,-1.0,       1.0, 1.0, 0.0, # vertex 1
+                               -1.0, 1.0,-1.0,       1.0, 1.0, 0.0, # vertex 2
+                               -1.0,-1.0,-1.0,       1.0, 1.0, 0.0, # vertex 3
 
                                # face 4:
-                               -1.0, 1.0, 1.0, 0.0, 1.0, 1.0, # vertex0
-                               -1.0, 1.0,-1.0, 0.0, 1.0, 1.0, # vertex1
-                               -1.0,-1.0, 1.0, 0.0, 1.0, 1.0, # vertex2
-                               -1.0,-1.0,-1.0, 0.0, 1.0, 1.0, # vertex3
+                               -1.0, 1.0, 1.0,       0.0, 1.0, 1.0, # vertex 0
+                               -1.0, 1.0,-1.0,       0.0, 1.0, 1.0, # vertex 1
+                               -1.0,-1.0, 1.0,       0.0, 1.0, 1.0, # vertex 2
+                               -1.0,-1.0,-1.0,       0.0, 1.0, 1.0, # vertex 3
 
                                # face 5:
-                                1.0,-1.0, 1.0, 1.0, 0.0, 1.0, # vertex0
-                               -1.0,-1.0, 1.0, 1.0, 0.0, 1.0, # vertex1
-                                1.0,-1.0,-1.0, 1.0, 0.0, 1.0, # vertex2
-                               -1.0,-1.0,-1.0, 1.0, 0.0, 1.0, # vertex3
+                                1.0,-1.0, 1.0,       1.0, 0.0, 1.0, # vertex 0
+                               -1.0,-1.0, 1.0,       1.0, 0.0, 1.0, # vertex 1
+                                1.0,-1.0,-1.0,       1.0, 0.0, 1.0, # vertex 2
+                               -1.0,-1.0,-1.0,       1.0, 0.0, 1.0, # vertex 3
                                ], dtype=np.float32)
 
         # fill with data
@@ -112,23 +111,18 @@ class Window(object):
                               # face 0:
                               0, 1, 2, # first triangle
                               2, 1, 3, # second triangle
-                              
                               # face 1:
                               4, 5, 6, # first triangle
                               6, 5, 7, # second triangle
-                              
                               # face 2:
                               8, 9, 10, # first triangle
                               10, 9, 11, # second triangle
-                              
                               # face 3:
                               12, 13, 14, # first triangle
                               14, 13, 15, # second triangle
-                              
                               # face 4:
                               16, 17, 18, # first triangle
                               18, 17, 19, # second triangle
-                              
                               # face 5:
                               20, 21, 22, # first triangle
                               22, 21, 23, # second triangle
@@ -138,28 +132,41 @@ class Window(object):
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexData.nbytes, indexData, GL_STATIC_DRAW)
 
         glBindVertexArray(0)
-        
+
         # we are drawing 3d objects so we want depth testing
         glEnable(GL_DEPTH_TEST)
 
+
     def renderGL(self):
         """opengl render method"""
-        
         # get the time in seconds
         t = glfwGetTime()
-        
+
         # clear first
-        glClear(GL_COLOR_BUFFER_BIT)
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
         # use the shader program
         glUseProgram(self.__shaderProgram)
 
+        # calculate ViewProjection matrix
+        projection = glm.perspective(90.0, 4.0 / 3.0, .1, 100.0)
+
+        # translate the world/view position
+        view = glm.translate(glm.mat4(1.0), glm.vec3(0.0, 0.0, -5.0))
+
+        # make the camera rotate around the origin
+        view = glm.rotate(view, 90.0 * t, glm.vec3(1.0, 1.0, 1.0))
+
+        viewProjection = np.array(projection * view, dtype=np.float32)
+
+        # set the uniform
+        glUniformMatrix4fv(self.__vpLocation, 1, GL_FALSE, viewProjection)
 
         # bind the vao
         glBindVertexArray(self.__vao)
 
         # draw
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, None)
+        glDrawElements(GL_TRIANGLES, 6*6, GL_UNSIGNED_INT, None)
 
         glBindVertexArray(0)
         glUseProgram(0)
@@ -215,3 +222,4 @@ if __name__ == '__main__':
     title = os.path.basename(__file__)
     win = Window(title=title[:-3])
     win.show()
+
