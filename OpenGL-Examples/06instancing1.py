@@ -24,19 +24,9 @@ class Window(object):
 
         self.__vertexShader = './shaders/%s.vert' % self.title
         self.__fragmentShader = './shaders/%s.frag' % self.title
-        self.__pevShader = './shaders/05post_effect.vert'
-        self.__pefShader = './shaders/05post_effect.frag'
         self.__shaderProgram = None
-        self.__pesProgram = None
         self.__vao = None
-        self.__pevao = None
-        self.__fbo = None
         self.__vpLocation = None
-        self.__peTexLocation = None
-        self.__texture = None
-
-        self.__fxaa = True
-        self.__space_dow = False
 
     def shaderFromFile(self, shaderType, shaderFile):
         """read shader from file and compile it"""
@@ -142,101 +132,43 @@ class Window(object):
         # fill with data
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexData.nbytes, indexData, GL_STATIC_DRAW)
 
-        glBindVertexArray(0)
+        # generate and bind the vertex buffer object containing the
+        # instance offsets
+        tbo = glGenBuffers(1)
+        glBindBuffer(GL_ARRAY_BUFFER, tbo)
 
-        # create and compiler post effect shader
-        pevShader = self.shaderFromFile(GL_VERTEX_SHADER, self.__pevShader)
-        pefShader = self.shaderFromFile(GL_FRAGMENT_SHADER, self.__pefShader)
-        self.__pesProgram = shaders.compileProgram(pevShader, pefShader)
-
-        # get texture uniform location
-        self.__peTexLocation = glGetUniformLocation(self.__pesProgram, 'intexture')
-
-        # generate and bind the vao
-        self.__pevao = glGenVertexArrays(1)
-        glBindVertexArray(self.__pevao)
-
-        # generate and bind the vertex buffer object
-        pevbo = glGenBuffers(1)
-        glBindBuffer(GL_ARRAY_BUFFER, pevbo)
-
-        # data for a fullscreen quad (this time with texture coords)
-        peVertexData = np.array([
-                                 # x    y    z      u    v
-                                  1.0, 1.0, 0.0,   1.0, 1.0,  # vertex 0
-                                 -1.0, 1.0, 0.0,   0.0, 1.0,  # vertex 1
-                                  1.0, -1.0, 0.0,   1.0, 0.0,  # vertex 2
-                                 -1.0, -1.0, 0.0,   0.0, 0.0,  # vertex 3
-                                 ], dtype=np.float32)
+        # the offsets
+        translationData = np.array([
+                                     2.0,  2.0,  2.0, # cube 0
+                                     2.0,  2.0, -2.0, # cube 1
+                                     2.0, -2.0,  2.0, # cube 2
+                                     2.0, -2.0, -2.0, # cube 3
+                                    -2.0,  2.0,  2.0, # cube 4
+                                    -2.0,  2.0, -2.0, # cube 5
+                                    -2.0, -2.0,  2.0, # cube 6
+                                    -2.0, -2.0, -2.0, # cube 7
+                                    ], dtype=np.float32)
 
         # fill with data
-        glBufferData(GL_ARRAY_BUFFER, peVertexData.nbytes, peVertexData, GL_STATIC_DRAW)
+        glBufferData(GL_ARRAY_BUFFER, translationData.nbytes, translationData, GL_STATIC_DRAW)
 
         # set up generic attrib pointers
-        glEnableVertexAttribArray(0)
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * 4, None)
+        glEnableVertexAttribArray(2)
+        glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 3 * 4, None)
 
-        glEnableVertexAttribArray(1)
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * 4, ctypes.c_void_p(3 * 4))
+        # a attrib divisor of 1 means that attribute 2 will advance once
+        # every instance (0 would mean once per vertex)
+        glVertexAttribDivisor(2, 1)
 
-        # generate and bind the index buffer object
-        peibo = glGenBuffers(1)
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, peibo)
+        # we are drawing 3d objects so we want depth testing
+        glEnable(GL_DEPTH_TEST)
 
-        peIndexData = np.array([0, 1, 2, # first triangle
-                                2, 1, 3, # second triangle
-                                ], dtype=np.uint)
-
-        # fill with data
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, peIndexData.nbytes, peIndexData, GL_STATIC_DRAW)
-
-        # "unbind" vao
         glBindVertexArray(0)
-
-        # generate texture
-        self.__texture = glGenTextures(1)
-        glBindTexture(GL_TEXTURE_2D, self.__texture)
-
-        # set texture parameters
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
-
-        # set texture content
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, self.width, self.height, 0,
-                     GL_RGBA, GL_UNSIGNED_BYTE, ctypes.c_void_p(0))
-
-        # generate renderbuffers
-        rbf = glGenRenderbuffers(1)
-        glBindRenderbuffer(GL_RENDERBUFFER, rbf)
-        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, self.width, self.height)
-
-        # generate framebuffer
-        self.__fbo = glGenFramebuffers(1)
-        glBindFramebuffer(GL_FRAMEBUFFER, self.__fbo)
-
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, self.__texture, 0)
-        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rbf)
 
     def renderGL(self):
         """opengl render method"""
         # get the time in seconds
         t = glfwGetTime()
-
-        # toggle fxaa on/off with space
-        if glfwGetKey(self.window, GLFW_KEY_SPACE) and not self.__space_dow:
-            self.__fxaa = not self.__fxaa
-        self.__space_dow = glfwGetKey(self.window, GLFW_KEY_SPACE)
-
-        # we are drawing 3d objects so we want depth testing
-        glEnable(GL_DEPTH_TEST)
-
-        # bind target framebuffer
-        if self.__fxaa:
-            glBindFramebuffer(GL_FRAMEBUFFER, self.__fbo)
-        else:
-            glBindFramebuffer(GL_FRAMEBUFFER, 0)
 
         # clear first
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
@@ -262,31 +194,8 @@ class Window(object):
         glBindVertexArray(self.__vao)
 
         # draw
-        glDrawElements(GL_TRIANGLES, 6*6, GL_UNSIGNED_INT, None)
-
-        # apply post processing only when fxaa is on
-        if self.__fxaa:
-            # bind the "screen frambuffer"
-            glBindFramebuffer(GL_FRAMEBUFFER, 0)
-
-            # we are not 3d rendering so no depth test
-            glDisable(GL_DEPTH_TEST)
-
-            # use the shader program
-            glUseProgram(self.__pesProgram)
-
-            # bind texture to texture unit 0
-            glActiveTexture(GL_TEXTURE0)
-            glBindTexture(GL_TEXTURE_2D, self.__texture)
-
-            # set uniform
-            glUniform1i(self.__peTexLocation, 0)
-
-            # bind the vao
-            glBindVertexArray(self.__pevao)
-
-            # draw
-            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, None)
+        # the additional parameter indicates how many instances to render
+        glDrawElementsInstanced(GL_TRIANGLES, 6 * 6, GL_UNSIGNED_INT, None, 8)
 
         glBindVertexArray(0)
         glUseProgram(0)
