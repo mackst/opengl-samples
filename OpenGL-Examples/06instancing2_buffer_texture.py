@@ -29,6 +29,9 @@ class Window(object):
         self.__shaderProgram = None
         self.__vao = None
         self.__vpLocation = None
+        self.__otLocation = None
+
+        self.__bufferTex = None
 
     def shaderFromFile(self, shaderType, shaderFile):
         """read shader from file and compile it"""
@@ -48,6 +51,7 @@ class Window(object):
             self.close()
 
         self.__vpLocation = glGetUniformLocation(self.__shaderProgram, 'ViewProjection')
+        self.__otLocation = glGetUniformLocation(self.__shaderProgram, 'offset_texture')
 
         # generate and bind the vao
         self.__vao = glGenVertexArrays(1)
@@ -141,31 +145,30 @@ class Window(object):
 
         # the offsets
         translationData = np.array([
-                                     2.0,  2.0,  2.0, # cube 0
-                                     2.0,  2.0, -2.0, # cube 1
-                                     2.0, -2.0,  2.0, # cube 2
-                                     2.0, -2.0, -2.0, # cube 3
-                                    -2.0,  2.0,  2.0, # cube 4
-                                    -2.0,  2.0, -2.0, # cube 5
-                                    -2.0, -2.0,  2.0, # cube 6
-                                    -2.0, -2.0, -2.0, # cube 7
+                                     2.0,  2.0,  2.0, 0.0, # cube 0
+                                     2.0,  2.0, -2.0, 0.0, # cube 1
+                                     2.0, -2.0,  2.0, 0.0, # cube 2
+                                     2.0, -2.0, -2.0, 0.0, # cube 3
+                                    -2.0,  2.0,  2.0, 0.0, # cube 4
+                                    -2.0,  2.0, -2.0, 0.0, # cube 5
+                                    -2.0, -2.0,  2.0, 0.0, # cube 6
+                                    -2.0, -2.0, -2.0, 0.0, # cube 7
                                     ], dtype=np.float32)
 
         # fill with data
         glBufferData(GL_ARRAY_BUFFER, translationData.nbytes, translationData, GL_STATIC_DRAW)
 
-        # set up generic attrib pointers
-        glEnableVertexAttribArray(2)
-        glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 3 * 4, None)
+        # generate and bind the buffer texture
+        self.__bufferTex = glGenTextures(1)
+        glBindTexture(GL_TEXTURE_BUFFER, self.__bufferTex)
 
-        # a attrib divisor of 1 means that attribute 2 will advance once
-        # every instance (0 would mean once per vertex)
-        glVertexAttribDivisor(2, 1)
+        # tell the buffer texture to use
+        glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F, tbo)
+
+        glBindVertexArray(0)
 
         # we are drawing 3d objects so we want depth testing
         glEnable(GL_DEPTH_TEST)
-
-        glBindVertexArray(0)
 
     def renderGL(self):
         """opengl render method"""
@@ -191,6 +194,13 @@ class Window(object):
 
         # set the uniform
         glUniformMatrix4fv(self.__vpLocation, 1, GL_FALSE, viewProjection)
+
+        # bind texture to texture unit 0
+        glActiveTexture(GL_TEXTURE0)
+        #glBindTexture(GL_TEXTURE_BUFFER, self.__bufferTex)
+
+        # set texture uniform
+        glUniform1i(self.__otLocation, 0)
 
         # bind the vao
         glBindVertexArray(self.__vao)
