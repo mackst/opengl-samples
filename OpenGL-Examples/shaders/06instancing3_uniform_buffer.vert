@@ -4,7 +4,7 @@ layout(std140) uniform Matrices
 {
     mat4 ViewProjection;
     mat4 Model[8];
-}
+};
 
 layout(location=0) in vec4 vposition;
 layout(location=1) in vec4 vcolor;

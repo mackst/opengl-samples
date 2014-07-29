@@ -27,9 +27,10 @@ class Window(object):
         self.__shaderProgram = None
         self.__vao = None
         self.__vpLocation = None
-        self.__otLocation = None
+        self.__ubIndex = None
 
-        self.__bufferTex = None
+        self.__ubo = None
+        self.__matricesBinding = 0
 
     def shaderFromFile(self, shaderType, shaderFile):
         """read shader from file and compile it"""
@@ -48,8 +49,28 @@ class Window(object):
         if not self.__shaderProgram:
             self.close()
 
-        self.__vpLocation = glGetUniformLocation(self.__shaderProgram, 'ViewProjection')
-        self.__otLocation = glGetUniformLocation(self.__shaderProgram, 'offset_texture')
+        self.__ubIndex = glGetUniformBlockIndex(self.__shaderProgram, 'Matrices')
+        # assign the block binding
+        glUniformBlockBinding(self.__shaderProgram, self.__ubIndex, self.__matricesBinding)
+
+        # create uniform buffer
+        self.__ubo = glGenBuffers(1)
+        glBindBuffer(GL_UNIFORM_BUFFER, self.__ubo)
+        glBufferData(GL_UNIFORM_BUFFER, 9 * 4 * 4 * 4, None, GL_DYNAMIC_DRAW)
+
+        # fill the Model matrix array
+        modelMatrices = []
+        modelMatrices.append(glm.translate(glm.mat4(1.0), glm.vec3( 2.0,  2.0,  2.0)))
+        modelMatrices.append(glm.translate(glm.mat4(1.0), glm.vec3( 2.0,  2.0, -2.0)))
+        modelMatrices.append(glm.translate(glm.mat4(1.0), glm.vec3( 2.0, -2.0,  2.0)))
+        modelMatrices.append(glm.translate(glm.mat4(1.0), glm.vec3( 2.0, -2.0, -2.0)))
+        modelMatrices.append(glm.translate(glm.mat4(1.0), glm.vec3(-2.0,  2.0,  2.0)))
+        modelMatrices.append(glm.translate(glm.mat4(1.0), glm.vec3(-2.0,  2.0, -2.0)))
+        modelMatrices.append(glm.translate(glm.mat4(1.0), glm.vec3(-2.0, -2.0,  2.0)))
+        modelMatrices.append(glm.translate(glm.mat4(1.0), glm.vec3(-2.0, -2.0, -2.0)))
+        modelMatrices = np.array(modelMatrices, dtype=np.float32)
+
+        glBufferSubData(GL_UNIFORM_BUFFER, 4 * 4 * 4, modelMatrices.nbytes, modelMatrices)
 
         # generate and bind the vao
         self.__vao = glGenVertexArrays(1)
@@ -136,33 +157,6 @@ class Window(object):
         # fill with data
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexData.nbytes, indexData, GL_STATIC_DRAW)
 
-        # generate and bind the vertex buffer object containing the
-        # instance offsets
-        tbo = glGenBuffers(1)
-        glBindBuffer(GL_ARRAY_BUFFER, tbo)
-
-        # the offsets
-        translationData = np.array([
-                                     2.0,  2.0,  2.0, 0.0, # cube 0
-                                     2.0,  2.0, -2.0, 0.0, # cube 1
-                                     2.0, -2.0,  2.0, 0.0, # cube 2
-                                     2.0, -2.0, -2.0, 0.0, # cube 3
-                                    -2.0,  2.0,  2.0, 0.0, # cube 4
-                                    -2.0,  2.0, -2.0, 0.0, # cube 5
-                                    -2.0, -2.0,  2.0, 0.0, # cube 6
-                                    -2.0, -2.0, -2.0, 0.0, # cube 7
-                                    ], dtype=np.float32)
-
-        # fill with data
-        glBufferData(GL_ARRAY_BUFFER, translationData.nbytes, translationData, GL_STATIC_DRAW)
-
-        # generate and bind the buffer texture
-        self.__bufferTex = glGenTextures(1)
-        glBindTexture(GL_TEXTURE_BUFFER, self.__bufferTex)
-
-        # tell the buffer texture to use
-        glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F, tbo)
-
         glBindVertexArray(0)
 
         # we are drawing 3d objects so we want depth testing
@@ -190,15 +184,10 @@ class Window(object):
 
         viewProjection = np.array(projection * view, dtype=np.float32)
 
-        # set the uniform
-        glUniformMatrix4fv(self.__vpLocation, 1, GL_FALSE, viewProjection)
-
-        # bind texture to texture unit 0
-        glActiveTexture(GL_TEXTURE0)
-        #glBindTexture(GL_TEXTURE_BUFFER, self.__bufferTex)
-
-        # set texture uniform
-        glUniform1i(self.__otLocation, 0)
+        # set the ViewProjection in the uniform buffer
+        glBindBuffer(GL_UNIFORM_BUFFER, self.__ubo)
+        glBufferSubData(GL_UNIFORM_BUFFER, 0, viewProjection.nbytes, viewProjection)
+        glBindBufferRange(GL_UNIFORM_BUFFER, self.__matricesBinding, self.__ubo, 0, 4 * 4 * 4 * 9)
 
         # bind the vao
         glBindVertexArray(self.__vao)
