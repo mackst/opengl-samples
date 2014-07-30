@@ -12,18 +12,18 @@ void main()
 {
     vec4 pos = View * gl_in[0].gl_Position;
     txcoord = vec2(-1, -1);
-    gl_Position = Projection * (pos + vec4(txcoord, 0, 0));
+    gl_Position = Projection * (pos + 0.2 * vec4(txcoord, 0, 0));
     EmitVertex();
 
     txcoord = vec2(1, -1);
-    gl_Position = Projection * (pos + vec4(txcoord, 0, 0));
+    gl_Position = Projection * (pos + 0.2 * vec4(txcoord, 0, 0));
     EmitVertex();
 
     txcoord = vec2(-1, 1);
-    gl_Position = Projection * (pos + vec4(txcoord, 0, 0));
+    gl_Position = Projection * (pos + 0.2 * vec4(txcoord, 0, 0));
     EmitVertex();
 
     txcoord = vec2(1, 1);
-    gl_Position = Projection * (pos + vec4(txcoord, 0, 0));
+    gl_Position = Projection * (pos + 0.2 * vec4(txcoord, 0, 0));
     EmitVertex();
 }

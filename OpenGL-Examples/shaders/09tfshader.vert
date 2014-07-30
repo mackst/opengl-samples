@@ -23,14 +23,13 @@ float hash(int x)
 void main()
 {
     outvelocity = invelocity;
-
     for(int j = 0; j < 3; ++j)
     {
         vec3 diff = inposition - center[j];
         float dist = length(diff);
         float vdot = dot(diff, invelocity);
         if(dist < radius[j] && vdot < 0.0)
-            outvelocity -= bounce * diff * vdot / (dist * dist)
+            outvelocity -= bounce * diff * vdot / (dist * dist);
     }
 
     outvelocity += dt * g;
@@ -38,7 +37,7 @@ void main()
     if(outposition.y < -30.0)
     {
         outvelocity = vec3(0, 0, 0);
-        outposition = 0.5 - vec3(hash(3*gl_VertexID+0), hash(3*gl_VertexID+1), hash(3*gl_VertexID+2));
+        outposition = 0.5 - vec3(hash(3 * gl_VertexID + 0), hash(3 * gl_VertexID + 1), hash(3 * gl_VertexID + 2));
         outposition = vec3(0, 20, 0) + 5.0 * outposition;
     }
 }
