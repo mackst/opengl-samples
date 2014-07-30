@@ -6,7 +6,7 @@
 # made of particles.
 
 import math
-import random
+from random import random as rand
 import ctypes
 
 import numpy as np
@@ -15,11 +15,6 @@ from OpenGL.GL import shaders
 
 from glfw import *
 import glm
-
-
-def rand():
-    RAND_MAX = 0x7fff
-    return random.randint(0, RAND_MAX) / float(RAND_MAX)
 
 
 class Window(object):
@@ -86,9 +81,7 @@ class Window(object):
             x += (4.0 - .2 * alpha) * (2 - rand() + rand() + rand() + rand())
             y += (2.0 - .1 * alpha) * (2 - rand() + rand() + rand() + rand())
             z += (4.0 - .2 * alpha) * (2 - rand() + rand() + rand() + rand())
-            vertexData.append(x)
-            vertexData.append(y)
-            vertexData.append(z)
+            vertexData.append((x, y, z))
         vertexData = np.array(vertexData, dtype=np.float32)
 
         # fill with data
@@ -100,8 +93,8 @@ class Window(object):
 
         glBindVertexArray(0)
 
-        # we are drawing 3d objects so we want depth testing
-        glEnable(GL_DEPTH_TEST)
+        # we are blending so no depth testing
+        glDisable(GL_DEPTH_TEST)
 
         # enable blending
         glEnable(GL_BLEND)
